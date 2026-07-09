@@ -1,7 +1,7 @@
 import { UserSchema } from '#database/schema'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { column, hasMany } from '@adonisjs/lucid/orm'
+import { hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
@@ -12,16 +12,9 @@ import Transaction from '#models/transaction'
 /**
  * User model represents a user in the application.
  * It extends UserSchema and includes authentication capabilities
- * through the withAuthFinder mixin.
+ * through the withAuthFinder mixin. `defaultCurrency` lives on UserSchema.
  */
 export default class User extends compose(UserSchema, withAuthFinder(hash)) {
-  /**
-   * The user's preferred currency (ISO 4217), used to prefill new
-   * ledgers/transactions. Defaults to 'USD'.
-   */
-  @column()
-  declare defaultCurrency: string
-
   /**
    * A user owns many contacts, ledgers and transactions. All money data is
    * scoped to the owning user (multi-tenant isolation).

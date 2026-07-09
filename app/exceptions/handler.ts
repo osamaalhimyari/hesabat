@@ -31,9 +31,44 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
   /**
    * The method is used for handling errors and returning
-   * response to the client
+   * response to the client.
+   *
+   * For the `/api` surface we always answer with the JSON envelope the mobile
+   * client expects: `{ success: false, message, errors? }`. `message` is a
+   * stable, translatable key. Web routes keep their default HTML behavior.
    */
   async handle(error: unknown, ctx: HttpContext) {
+    if (ctx.request.url().startsWith('/api')) {
+      const err = error as { code?: string; status?: number; message?: string; messages?: unknown }
+      const code = err?.code
+
+      if (code === 'E_VALIDATION_ERROR') {
+        return ctx.response.status(422).send({
+          success: false,
+          message: 'validation_failed',
+          errors: err.messages ?? [],
+        })
+      }
+      if (code === 'E_INVALID_CREDENTIALS') {
+        // Generic message + 401 to avoid user enumeration.
+        return ctx.response.status(401).send({ success: false, message: 'invalid_credentials' })
+      }
+      if (code === 'E_UNAUTHORIZED_ACCESS' || err?.status === 401) {
+        return ctx.response.status(401).send({ success: false, message: 'unauthorized' })
+      }
+      if (code === 'E_AUTHORIZATION_FAILURE' || err?.status === 403) {
+        return ctx.response.status(403).send({ success: false, message: 'forbidden' })
+      }
+      if (code === 'E_ROUTE_NOT_FOUND' || err?.status === 404) {
+        return ctx.response.status(404).send({ success: false, message: 'not_found' })
+      }
+
+      const status = typeof err?.status === 'number' ? err.status : 500
+      const message =
+        status >= 500 ? (this.debug ? String(err?.message ?? 'server_error') : 'server_error') : String(err?.message ?? 'error')
+      return ctx.response.status(status).send({ success: false, message })
+    }
+
     return super.handle(error, ctx)
   }
 

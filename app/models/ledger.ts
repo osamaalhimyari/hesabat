@@ -1,5 +1,5 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import { LedgerSchema } from '#database/schema'
+import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
 import Contact from '#models/contact'
@@ -10,37 +10,7 @@ import Transaction from '#models/transaction'
  * `active` ledger (the current one, enforced by a partial unique index) plus
  * any number of `archived` ledgers.
  */
-export default class Ledger extends BaseModel {
-  @column({ isPrimary: true })
-  declare id: number
-
-  @column()
-  declare userId: number
-
-  @column()
-  declare contactId: number
-
-  @column()
-  declare title: string | null
-
-  @column()
-  declare currency: string
-
-  @column()
-  declare status: 'active' | 'archived'
-
-  @column.dateTime()
-  declare openedAt: DateTime
-
-  @column.dateTime()
-  declare closedAt: DateTime | null
-
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-
+export default class Ledger extends LedgerSchema {
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 

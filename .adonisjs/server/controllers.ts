@@ -4,6 +4,15 @@
  */
 
 export const controllers = {
+  api: {
+    v1: {
+      Auth: () => import('#controllers/api/v1/auth_controller'),
+      Contacts: () => import('#controllers/api/v1/contacts_controller'),
+      Ledgers: () => import('#controllers/api/v1/ledgers_controller'),
+      Summary: () => import('#controllers/api/v1/summary_controller'),
+      Transactions: () => import('#controllers/api/v1/transactions_controller'),
+    },
+  },
   NewAccount: () => import('#controllers/new_account_controller'),
   Session: () => import('#controllers/session_controller'),
 }

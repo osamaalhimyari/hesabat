@@ -7,11 +7,113 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class AuthAccessTokenSchema extends BaseModel {
+  static $columns = ['abilities', 'createdAt', 'expiresAt', 'hash', 'id', 'lastUsedAt', 'name', 'tokenableId', 'type', 'updatedAt'] as const
+  $columns = AuthAccessTokenSchema.$columns
+  @column()
+  declare abilities: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column.dateTime()
+  declare expiresAt: DateTime | null
+  @column()
+  declare hash: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare lastUsedAt: DateTime | null
+  @column()
+  declare name: string | null
+  @column()
+  declare tokenableId: number
+  @column()
+  declare type: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class ContactSchema extends BaseModel {
+  static $columns = ['createdAt', 'deviceContactId', 'id', 'name', 'phone', 'photoUrl', 'source', 'updatedAt', 'userId'] as const
+  $columns = ContactSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare deviceContactId: string | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column()
+  declare phone: string | null
+  @column()
+  declare photoUrl: string | null
+  @column()
+  declare source: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: number
+}
+
+export class LedgerSchema extends BaseModel {
+  static $columns = ['closedAt', 'contactId', 'createdAt', 'currency', 'id', 'openedAt', 'status', 'title', 'updatedAt', 'userId'] as const
+  $columns = LedgerSchema.$columns
+  @column.dateTime()
+  declare closedAt: DateTime | null
+  @column()
+  declare contactId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare openedAt: DateTime
+  @column()
+  declare status: string
+  @column()
+  declare title: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: number
+}
+
+export class TransactionSchema extends BaseModel {
+  static $columns = ['amountMinor', 'attachmentUrl', 'createdAt', 'currency', 'id', 'ledgerId', 'note', 'occurredAt', 'type', 'updatedAt', 'userId'] as const
+  $columns = TransactionSchema.$columns
+  @column()
+  declare amountMinor: bigint | number
+  @column()
+  declare attachmentUrl: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare ledgerId: number
+  @column()
+  declare note: string | null
+  @column.date()
+  declare occurredAt: DateTime
+  @column()
+  declare type: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: number
+}
+
 export class UserSchema extends BaseModel {
-  static $columns = ['createdAt', 'email', 'fullName', 'id', 'password', 'updatedAt'] as const
+  static $columns = ['createdAt', 'defaultCurrency', 'email', 'fullName', 'id', 'password', 'updatedAt'] as const
   $columns = UserSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare defaultCurrency: string
   @column()
   declare email: string
   @column()

@@ -43,9 +43,11 @@ const shieldConfig = defineConfig({
 
     /**
      * Routes that should be excluded from CSRF protection.
-     * Useful for webhooks or API endpoints that use other auth methods.
+     * The whole `/api` surface is stateless and bearer-token authenticated (it
+     * does not rely on the session cookie), so CSRF does not apply there. A
+     * function is used so it matches every nested path under `/api`.
      */
-    exceptRoutes: [],
+    exceptRoutes: (ctx) => ctx.request.url().startsWith('/api'),
 
     /**
      * Enable XSRF-TOKEN cookie for JavaScript frameworks.
