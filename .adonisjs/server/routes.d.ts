@@ -15,6 +15,7 @@ export type ScannedRoutes = {
     'auth.logout': { paramsTuple?: []; params?: {} }
     'auth.me': { paramsTuple?: []; params?: {} }
     'auth.refresh': { paramsTuple?: []; params?: {} }
+    'auth.update_settings': { paramsTuple?: []; params?: {} }
     'contacts.index': { paramsTuple?: []; params?: {} }
     'contacts.store': { paramsTuple?: []; params?: {} }
     'contacts.bulk_import': { paramsTuple?: []; params?: {} }
@@ -82,6 +83,7 @@ export type ScannedRoutes = {
     'transactions.store': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
   }
   PATCH: {
+    'auth.update_settings': { paramsTuple?: []; params?: {} }
     'contacts.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'ledgers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

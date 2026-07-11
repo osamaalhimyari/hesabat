@@ -54,6 +54,7 @@ router
         router.post('/auth/logout', [AuthController, 'logout'])
         router.get('/auth/me', [AuthController, 'me'])
         router.post('/auth/refresh', [AuthController, 'refresh'])
+        router.patch('/me/settings', [AuthController, 'updateSettings'])
 
         router.get('/contacts', [ContactsController, 'index'])
         router.post('/contacts', [ContactsController, 'store'])

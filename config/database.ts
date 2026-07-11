@@ -1,11 +1,13 @@
 import app from '@adonisjs/core/services/app'
+import env from '#start/env'
 import { defineConfig } from '@adonisjs/lucid'
 
 const dbConfig = defineConfig({
   /**
-   * Default connection used for all queries.
+   * Default connection used for all queries. Driven by `DB_CONNECTION` in
+   * `.env` (falls back to sqlite for local development).
    */
-  connection: 'sqlite',
+  connection: env.get('DB_CONNECTION', 'sqlite'),
 
   /**
    * Pretty-print SQL debug output in development logs.
@@ -53,24 +55,23 @@ const dbConfig = defineConfig({
     // },
 
     /**
-     * MySQL / MariaDB connection.
-     * Install package to switch: npm install mysql2
+     * MySQL / MariaDB connection. Selected when `DB_CONNECTION=mysql`.
      */
-    // mysql: {
-    //   client: 'mysql2',
-    //   connection: {
-    //     host: env.get('DB_HOST'),
-    //     port: env.get('DB_PORT'),
-    //     user: env.get('DB_USER'),
-    //     password: env.get('DB_PASSWORD'),
-    //     database: env.get('DB_DATABASE'),
-    //   },
-    //   migrations: {
-    //     naturalSort: true,
-    //     paths: ['database/migrations'],
-    //   },
-    //   debug: app.inDev,
-    // },
+    mysql: {
+      client: 'mysql2',
+      connection: {
+        host: env.get('DB_HOST'),
+        port: env.get('DB_PORT'),
+        user: env.get('DB_USER'),
+        password: env.get('DB_PASSWORD'),
+        database: env.get('DB_DATABASE'),
+      },
+      migrations: {
+        naturalSort: true,
+        paths: ['database/migrations'],
+      },
+      debug: app.inDev,
+    },
 
     /**
      * Microsoft SQL Server connection.

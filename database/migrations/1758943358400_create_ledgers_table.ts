@@ -34,14 +34,30 @@ export default class extends BaseSchema {
       table.index(['contact_id', 'status'], 'ledgers_contact_status_index')
     })
 
-    // Enforce "at most one active ledger per contact" at the DB level. Knex's
-    // `table.unique()` can't express a WHERE clause, so use a partial unique
-    // index (valid on both SQLite and Postgres).
+    // Enforce "at most one active ledger per contact" at the DB level, atomically.
+    // The natural expression is a partial unique index, but MySQL/MariaDB does
+    // not support the `WHERE` clause. So we branch by dialect:
+    //   - SQLite / Postgres: partial unique index on `contact_id WHERE active`.
+    //   - MySQL / MariaDB: a STORED generated column that equals `contact_id`
+    //     only while active (NULL otherwise) + a plain unique index. MySQL treats
+    //     each NULL as distinct, so archived rows never collide, and the index
+    //     still guarantees a single active ledger per contact. The helper column
+    //     is hidden from the API via `serializeAs: null` on the Ledger model.
     this.defer(async (db) => {
-      await db.rawQuery(
-        `CREATE UNIQUE INDEX ledgers_one_active_per_contact ` +
-          `ON ledgers (contact_id) WHERE status = 'active'`
-      )
+      if (db.dialect.name === 'mysql') {
+        await db.rawQuery(
+          'ALTER TABLE ledgers ADD COLUMN active_contact_id INT UNSIGNED ' +
+            "GENERATED ALWAYS AS (IF(`status` = 'active', `contact_id`, NULL)) STORED"
+        )
+        await db.rawQuery(
+          'CREATE UNIQUE INDEX ledgers_one_active_per_contact ON ledgers (active_contact_id)'
+        )
+      } else {
+        await db.rawQuery(
+          `CREATE UNIQUE INDEX ledgers_one_active_per_contact ` +
+            `ON ledgers (contact_id) WHERE status = 'active'`
+        )
+      }
     })
   }
 

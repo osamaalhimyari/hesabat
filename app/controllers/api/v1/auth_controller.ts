@@ -1,6 +1,7 @@
 import User from '#models/user'
-import { loginValidator } from '#validators/api/auth'
+import { loginValidator, updateSettingsValidator } from '#validators/api/auth'
 import { signupValidator } from '#validators/user'
+import { isSupportedCurrency } from '#services/currencies'
 import type { HttpContext } from '@adonisjs/core/http'
 
 /**
@@ -36,6 +37,32 @@ export default class AuthController {
   /** The authenticated user's profile. */
   async me({ auth, response }: HttpContext) {
     const user = auth.getUserOrFail()
+    return response.ok({ success: true, data: { user: user.serialize() } })
+  }
+
+  /**
+   * Update the authenticated user's settings (default currency, full name).
+   * User-scoped — only ever touches `auth.user`. `defaultCurrency` is
+   * normalized to upper-case and restricted to the supported allow-list.
+   */
+  async updateSettings({ auth, request, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const payload = await request.validateUsing(updateSettingsValidator)
+
+    if (payload.defaultCurrency !== undefined) {
+      const code = payload.defaultCurrency.toUpperCase()
+      if (!isSupportedCurrency(code)) {
+        return response.unprocessableEntity({
+          success: false,
+          message: 'unsupported_currency',
+          data: {},
+        })
+      }
+      user.defaultCurrency = code
+    }
+    if (payload.fullName !== undefined) user.fullName = payload.fullName
+
+    await user.save()
     return response.ok({ success: true, data: { user: user.serialize() } })
   }
 

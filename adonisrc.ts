@@ -117,6 +117,11 @@ export default defineConfig({
       pattern: 'public/**',
       reloadServer: false,
     },
+    {
+      // IIS / MonsterASP.NET httpPlatformHandler config — copied to build/ root
+      pattern: 'web.config',
+      reloadServer: false,
+    },
   ],
 
   /*

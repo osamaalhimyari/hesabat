@@ -1,23 +1,117 @@
 @layout()
-  <div class="hero">
-    <h1>It works — welcome to the simplicity of a Hypermedia app</h1>
-    <p>
-      A lightweight foundation for building modern web interfaces — straightforward, flexible, and true to the web's core simplicity.
-    </p>
-  </div>
+  <section class="landing-hero">
+    <div class="landing-copy">
+      <span class="eyebrow">حسابات · Hesabat</span>
+      <h1>Know exactly who owes what.</h1>
+      <p class="lede">
+        Hesabat is a personal ledger for the money that moves between you and the
+        people you deal with. Keep a book for every contact, record each amount
+        given or received, and always see the running balance — in any currency.
+      </p>
 
-  <div class="cards">
-    <a href="https://insiders.adonisjs.com/docs/v7-alpha/introduction" target="_blank">
-      <h3>Official Docs &nbsp;›</h3>
-      <p>Comprehensive reference for building with AdonisJS</p>
-    </a>
-    <a href="https://adocasts.com/" target="_blank">
-      <h3>Adocasts &nbsp;›</h3>
-      <p>Guided video tutorials for everyday development</p>
-    </a>
-    <a href="https://discord.gg/vDcEjq6" target="_blank">
-      <h3>Discord &nbsp;›</h3>
-      <p>Connect with developers building with AdonisJS every day</p>
-    </a>
-  </div>
+      @if(auth.user)
+        <p class="hero-greeting">
+          Signed in as <strong>{{ auth.user.fullName ?? auth.user.email }}</strong>.
+          Open the mobile app to manage your contacts and ledgers.
+        </p>
+      @else
+        <div class="hero-actions">
+          <a href="{{ urlFor('new_account.create') }}" class="btn btn-primary">Create your account</a>
+          <a href="{{ urlFor('session.create') }}" class="btn btn-secondary">Log in</a>
+        </div>
+      @end
+    </div>
+
+    <div class="ledger-preview" aria-hidden="true">
+      <div class="preview-title">Your balances</div>
+
+      <div class="balance-card">
+        <div class="balance-avatar">AR</div>
+        <div class="balance-info">
+          <div class="balance-name">Ahmed Al-Rashid</div>
+          <div class="balance-sub">Active ledger · 12 entries</div>
+        </div>
+        <div class="balance-amount pos">+1,250.00<small>SAR · owes you</small></div>
+      </div>
+
+      <div class="balance-card">
+        <div class="balance-avatar">SK</div>
+        <div class="balance-info">
+          <div class="balance-name">Sara Khan</div>
+          <div class="balance-sub">Active ledger · 5 entries</div>
+        </div>
+        <div class="balance-amount neg">−300.00<small>USD · you owe</small></div>
+      </div>
+
+      <div class="balance-card">
+        <div class="balance-avatar">MT</div>
+        <div class="balance-info">
+          <div class="balance-name">Mohammed Trading</div>
+          <div class="balance-sub">Active ledger · 28 entries</div>
+        </div>
+        <div class="balance-amount pos">+4,800.00<small>AED · owes you</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+      </div>
+      <h3>A book for every contact</h3>
+      <p>Keep a separate ledger per person or business. One active book at a time, with older ones neatly archived.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 1l4 4-4 4" />
+          <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+          <path d="M7 23l-4-4 4-4" />
+          <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+        </svg>
+      </div>
+      <h3>Record every transaction</h3>
+      <p>Log what you gave and what you received. Each entry updates the running balance automatically — no maths required.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      </div>
+      <h3>Any currency</h3>
+      <p>Track balances in USD, EUR, SAR, AED and 20+ more. Each currency is totalled on its own, so nothing gets mixed up.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="20" x2="6" y2="14" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="18" y1="20" x2="18" y2="10" />
+        </svg>
+      </div>
+      <h3>See who owes whom</h3>
+      <p>Instant per-contact and overall summaries show exactly how much you're owed and how much you owe — at a glance.</p>
+    </div>
+  </section>
+
+  @if(!auth.user)
+    <section class="cta-band">
+      <h2>Start keeping cleaner accounts</h2>
+      <p>Create a free account and add your first contact in seconds.</p>
+      <div class="hero-actions" style="justify-content: center">
+        <a href="{{ urlFor('new_account.create') }}" class="btn btn-primary">Create your account</a>
+        <a href="{{ urlFor('session.create') }}" class="btn btn-secondary">Log in</a>
+      </div>
+    </section>
+  @end
 @end

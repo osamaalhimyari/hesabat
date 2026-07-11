@@ -56,8 +56,10 @@ export class ContactSchema extends BaseModel {
 }
 
 export class LedgerSchema extends BaseModel {
-  static $columns = ['closedAt', 'contactId', 'createdAt', 'currency', 'id', 'openedAt', 'status', 'title', 'updatedAt', 'userId'] as const
+  static $columns = ['activeContactId', 'closedAt', 'contactId', 'createdAt', 'currency', 'id', 'openedAt', 'status', 'title', 'updatedAt', 'userId'] as const
   $columns = LedgerSchema.$columns
+  @column()
+  declare activeContactId: number | null
   @column.dateTime()
   declare closedAt: DateTime | null
   @column()

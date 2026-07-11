@@ -23,8 +23,11 @@ export default class extends BaseSchema {
 
       table.enum('type', ['lend', 'borrow', 'receipt', 'expense']).notNullable()
       // Amount stored as a positive integer in the currency's smallest unit
-      // (minor units). Sign is derived from `type` at balance time.
-      table.bigInteger('amount_minor').unsigned().notNullable()
+      // (minor units). Sign is derived from `type` at balance time, where the
+      // balance SQL multiplies this by -1 for borrow/receipt — so the column
+      // must be SIGNED (an UNSIGNED BIGINT overflows on `value * -1` in MySQL).
+      // A signed BIGINT still holds ±9.2e18 minor units, far beyond any amount.
+      table.bigInteger('amount_minor').notNullable()
       table.string('currency', 3).notNullable()
       table.date('occurred_at').notNullable()
       table.text('note').nullable()

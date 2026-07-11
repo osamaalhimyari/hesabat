@@ -234,3 +234,240 @@ button:hover {
     transform: scale(1);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Landing / welcome page                                             */
+/* ------------------------------------------------------------------ */
+:root {
+  --pos: #00a63e;
+  --neg: #fb2c36;
+}
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 60px;
+  align-items: center;
+  padding: 80px 50px;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--gray-7);
+  background: var(--gray-2);
+  border: 1px solid var(--gray-3);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 22px;
+}
+
+.landing-hero h1 {
+  font-size: 52px;
+  font-weight: 600;
+  letter-spacing: -1.5px;
+  line-height: 1.03;
+  margin-bottom: 18px;
+}
+
+.landing-hero .lede {
+  font-size: 20px;
+  color: var(--gray-7);
+  max-width: 520px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 34px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  width: auto;
+  padding: 0 22px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 16px;
+}
+.btn-primary {
+  background: var(--gray-12);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--gray-10);
+}
+.btn-secondary {
+  border: 1px solid var(--gray-4);
+  color: var(--gray-12);
+}
+.btn-secondary:hover {
+  background: var(--gray-1);
+}
+
+.hero-greeting {
+  margin-top: 30px;
+  font-size: 17px;
+  color: var(--gray-7);
+}
+.hero-greeting strong {
+  color: var(--gray-12);
+}
+
+/* Mock ledger preview */
+.ledger-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.preview-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--gray-6);
+  margin-bottom: 2px;
+}
+.balance-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--gray-3);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.balance-avatar {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--gray-2);
+  border: 1px solid var(--gray-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--gray-8);
+}
+.balance-info {
+  flex: 1;
+  min-width: 0;
+}
+.balance-name {
+  font-weight: 600;
+  color: var(--gray-12);
+}
+.balance-sub {
+  font-size: 13px;
+  color: var(--gray-6);
+}
+.balance-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.balance-amount small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gray-6);
+  letter-spacing: 0.2px;
+}
+.pos {
+  color: var(--pos);
+}
+.neg {
+  color: var(--neg);
+}
+
+/* Features grid */
+.features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-top: 1px solid var(--gray-3);
+}
+.feature {
+  padding: 34px 40px;
+  border-right: 1px solid var(--gray-3);
+  border-bottom: 1px solid var(--gray-3);
+}
+.feature:nth-child(2n) {
+  border-right: none;
+}
+.feature-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--gray-2);
+  border: 1px solid var(--gray-3);
+  color: var(--gray-8);
+  margin-bottom: 16px;
+}
+.feature h3 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  margin-bottom: 8px;
+}
+.feature p {
+  color: var(--gray-6);
+}
+
+/* Closing call to action */
+.cta-band {
+  padding: 64px 50px;
+  text-align: center;
+}
+.cta-band h2 {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  margin-bottom: 10px;
+}
+.cta-band p {
+  color: var(--gray-6);
+  font-size: 18px;
+  margin-bottom: 26px;
+}
+
+@media (max-width: 900px) {
+  main {
+    margin: 0 12px;
+  }
+  .landing-hero {
+    grid-template-columns: 1fr;
+    padding: 52px 26px;
+    gap: 40px;
+  }
+  .landing-hero h1 {
+    font-size: 40px;
+    letter-spacing: -1px;
+  }
+  .landing-hero .lede {
+    font-size: 18px;
+  }
+  .features {
+    grid-template-columns: 1fr;
+  }
+  .feature {
+    border-right: none;
+    padding: 28px 26px;
+  }
+  .cta-band {
+    padding: 48px 26px;
+  }
+}
