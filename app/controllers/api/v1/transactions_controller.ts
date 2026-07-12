@@ -142,11 +142,16 @@ export default class TransactionsController {
         .query()
         .where('id', payload.contactId)
         .firstOrFail()
-      // The contact's active ledger, auto-created if none (mirrors LedgersController.current).
-      let ledger = await contact.related('ledgers').query().where('status', 'active').first()
+      // The contact's active ledger FOR THIS CURRENCY, auto-created if none
+      // (mirrors LedgersController.current). A contact may hold one active
+      // ledger per currency, so we look up / create by (contact, currency).
+      let ledger = await contact
+        .related('ledgers')
+        .query()
+        .where('status', 'active')
+        .where('currency', currency)
+        .first()
       if (!ledger) {
-        // A brand-new ledger adopts the chosen currency; an existing one keeps
-        // its own — a ledger is single-currency (see `store`).
         ledger = await contact.related('ledgers').create({
           userId: user.id,
           currency,
@@ -155,7 +160,7 @@ export default class TransactionsController {
         })
       }
       ledgerId = ledger.id
-      currency = ledger.currency
+      // Do NOT reassign currency — the ledger already matches it.
     } else if (DEBT_TYPES.has(payload.type)) {
       return response.status(422).send({ success: false, error: 'contact_required' })
     }

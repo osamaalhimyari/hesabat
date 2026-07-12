@@ -31,8 +31,13 @@ export default class LedgersController {
     return response.ok({ success: true, data: { ledgers: data } })
   }
 
-  /** The single active ("current") ledger for a contact; auto-created if none. */
-  async current({ auth, params, response }: HttpContext) {
+  /**
+   * The active ("current") ledger for a contact; auto-created if none.
+   * With `?currency=`, returns the active ledger FOR THAT currency (a contact
+   * may hold one active ledger per currency). Without it, returns any active
+   * ledger — preferring the user's default currency — for backward compat.
+   */
+  async current({ auth, params, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
     const contact = await user
       .related('contacts')
@@ -40,21 +45,52 @@ export default class LedgersController {
       .where('id', params.contactId)
       .firstOrFail()
 
-    let ledger = await contact.related('ledgers').query().where('status', 'active').first()
-    if (!ledger) {
-      ledger = await contact.related('ledgers').create({
-        userId: user.id,
-        currency: user.defaultCurrency || 'USD',
-        status: 'active',
-        openedAt: DateTime.now(),
-      })
+    const requestedCurrency = request.input('currency')
+    let ledger
+    if (requestedCurrency) {
+      // Uppercase to match how storeGeneral stores currencies (`.toUpperCase()`).
+      const currency = String(requestedCurrency).toUpperCase()
+      ledger = await contact
+        .related('ledgers')
+        .query()
+        .where('status', 'active')
+        .where('currency', currency)
+        .first()
+      if (!ledger) {
+        ledger = await contact.related('ledgers').create({
+          userId: user.id,
+          currency,
+          status: 'active',
+          openedAt: DateTime.now(),
+        })
+      }
+    } else {
+      // Backward compatible: prefer an active ledger in the default currency,
+      // else any active ledger, else create one in the default currency.
+      const defaultCurrency = (user.defaultCurrency || 'USD').toUpperCase()
+      ledger =
+        (await contact
+          .related('ledgers')
+          .query()
+          .where('status', 'active')
+          .where('currency', defaultCurrency)
+          .first()) ??
+        (await contact.related('ledgers').query().where('status', 'active').first())
+      if (!ledger) {
+        ledger = await contact.related('ledgers').create({
+          userId: user.id,
+          currency: user.defaultCurrency || 'USD',
+          status: 'active',
+          openedAt: DateTime.now(),
+        })
+      }
     }
     const json = ledger.serialize()
     json.balance = await ledgerBalanceByCurrency(user.id, ledger.id)
     return response.ok({ success: true, data: { ledger: json } })
   }
 
-  /** Open a new ledger (409 if the contact already has an active one). */
+  /** Open a new ledger (409 if the contact already has an active one in the same currency). */
   async store({ auth, params, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
     const contact = await user
@@ -64,7 +100,15 @@ export default class LedgersController {
       .firstOrFail()
     const payload = await request.validateUsing(createLedgerValidator)
 
-    const activeExists = await contact.related('ledgers').query().where('status', 'active').first()
+    // A contact may hold one active ledger per currency, so the guard is
+    // per-currency: an active ledger only blocks a new one of the SAME currency.
+    const currency = (payload.currency || user.defaultCurrency || 'USD').toUpperCase()
+    const activeExists = await contact
+      .related('ledgers')
+      .query()
+      .where('status', 'active')
+      .where('currency', currency)
+      .first()
     if (activeExists) {
       return response.status(409).send({ success: false, message: 'active_ledger_exists' })
     }
@@ -72,7 +116,7 @@ export default class LedgersController {
     const ledger = await contact.related('ledgers').create({
       userId: user.id,
       title: payload.title ?? null,
-      currency: payload.currency || user.defaultCurrency || 'USD',
+      currency,
       status: 'active',
       openedAt: DateTime.now(),
     })
@@ -111,15 +155,17 @@ export default class LedgersController {
     return response.ok({ success: true, data: { ledger: ledger.serialize() } })
   }
 
-  /** Reactivate an archived ledger (409 if another active one exists). */
+  /** Reactivate an archived ledger (409 if another active one of the same currency exists). */
   async reopen({ auth, params, response }: HttpContext) {
     const user = auth.getUserOrFail()
     const ledger = await user.related('ledgers').query().where('id', params.id).firstOrFail()
+    // Per-currency guard: only another ACTIVE ledger of the SAME currency blocks.
     const activeExists = await user
       .related('ledgers')
       .query()
       .where('contact_id', ledger.contactId)
       .where('status', 'active')
+      .where('currency', ledger.currency)
       .whereNot('id', ledger.id)
       .first()
     if (activeExists) {
