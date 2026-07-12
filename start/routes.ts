@@ -73,6 +73,8 @@ router
 
         router.get('/ledgers/:ledgerId/transactions', [TransactionsController, 'index'])
         router.post('/ledgers/:ledgerId/transactions', [TransactionsController, 'store'])
+        router.get('/transactions', [TransactionsController, 'feed'])
+        router.post('/transactions', [TransactionsController, 'storePersonal'])
         router.get('/transactions/:id', [TransactionsController, 'show'])
         router.patch('/transactions/:id', [TransactionsController, 'update'])
         router.delete('/transactions/:id', [TransactionsController, 'destroy'])

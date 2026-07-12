@@ -31,6 +31,8 @@ export type ScannedRoutes = {
     'ledgers.reopen': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
     'transactions.store': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
+    'transactions.feed': { paramsTuple?: []; params?: {} }
+    'transactions.store_personal': { paramsTuple?: []; params?: {} }
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -48,6 +50,7 @@ export type ScannedRoutes = {
     'ledgers.current': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'ledgers.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
+    'transactions.feed': { paramsTuple?: []; params?: {} }
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'summary.contact': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'summary.global': { paramsTuple?: []; params?: {} }
@@ -63,6 +66,7 @@ export type ScannedRoutes = {
     'ledgers.current': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'ledgers.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
+    'transactions.feed': { paramsTuple?: []; params?: {} }
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'summary.contact': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'summary.global': { paramsTuple?: []; params?: {} }
@@ -81,6 +85,7 @@ export type ScannedRoutes = {
     'ledgers.archive': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'ledgers.reopen': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.store': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
+    'transactions.store_personal': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'auth.update_settings': { paramsTuple?: []; params?: {} }

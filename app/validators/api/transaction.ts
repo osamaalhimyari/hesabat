@@ -15,6 +15,19 @@ export const createTransactionValidator = vine.create({
   attachmentUrl: vine.string().trim().maxLength(1024).nullable().optional(),
 })
 
+/**
+ * Personal (contact-less) cash entry. Only receipt/expense make sense without a
+ * person — lend/borrow are debts and require a ledger.
+ */
+export const createPersonalTransactionValidator = vine.create({
+  type: vine.enum(['receipt', 'expense']),
+  amount: amountRule(),
+  currency: vine.string().trim().fixedLength(3).optional(),
+  occurredAt: occurredAtRule(),
+  note: vine.string().trim().maxLength(1000).nullable().optional(),
+  attachmentUrl: vine.string().trim().maxLength(1024).nullable().optional(),
+})
+
 export const updateTransactionValidator = vine.create({
   type: vine.enum(['lend', 'borrow', 'receipt', 'expense']).optional(),
   amount: amountRule().optional(),

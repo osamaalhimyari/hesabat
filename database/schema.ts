@@ -96,7 +96,7 @@ export class TransactionSchema extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare ledgerId: number
+  declare ledgerId: number | null
   @column()
   declare note: string | null
   @column.date()

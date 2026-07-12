@@ -1,5 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { contactSummary, globalSummary, type CurrencySummary } from '#services/balance_service'
+import {
+  contactSummary,
+  dashboardOverview,
+  type CurrencyBalance,
+  type CurrencySummary,
+} from '#services/balance_service'
 import { formatMinor } from '#services/money'
 
 /**
@@ -20,12 +25,30 @@ export default class SummaryController {
     return response.ok({ success: true, data: { summary: summaries.map(shape) } })
   }
 
-  /** Per-currency totals across all of the user's active ledgers. */
+  /**
+   * The Home dashboard overview: personal cash wallet + total to-pay/to-receive
+   * debts, per currency. Powers the colored balance circles.
+   */
   async global({ auth, response }: HttpContext) {
     const user = auth.getUserOrFail()
-    const summaries = await globalSummary(user.id)
-    return response.ok({ success: true, data: { summary: summaries.map(shape) } })
+    const overview = await dashboardOverview(user.id)
+    return response.ok({
+      success: true,
+      data: {
+        overview: {
+          defaultCurrency: user.defaultCurrency || 'USD',
+          cash: overview.cash.map(shapeBalance),
+          toPay: overview.toPay.map(shapeBalance),
+          toReceive: overview.toReceive.map(shapeBalance),
+        },
+      },
+    })
   }
+}
+
+/** Serialize a per-currency balance with a display string. */
+function shapeBalance(b: CurrencyBalance) {
+  return { currency: b.currency, minor: b.balanceMinor, display: formatMinor(b.balanceMinor, b.currency) }
 }
 
 /** Serialize a currency summary with money display strings + a net direction. */

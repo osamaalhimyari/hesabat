@@ -20,6 +20,14 @@ export function signOf(type: TransactionType): number {
 const SIGNED_MINOR = `tx.amount_minor * (CASE tx.type ` +
   `WHEN 'lend' THEN 1 WHEN 'expense' THEN 1 ELSE -1 END)`
 
+/**
+ * SQL expression for a personal (cash-wallet) row. NOTE the sign is the OPPOSITE
+ * of `SIGNED_MINOR`: a receipt adds to your money (+), an expense reduces it (−).
+ * lend/borrow never appear here (they always belong to a ledger), hence ELSE 0.
+ */
+const CASH_SIGNED_MINOR = `tx.amount_minor * (CASE tx.type ` +
+  `WHEN 'receipt' THEN 1 WHEN 'expense' THEN -1 ELSE 0 END)`
+
 export interface CurrencyBalance {
   currency: string
   balanceMinor: number
@@ -117,6 +125,60 @@ export async function globalSummary(userId: number): Promise<CurrencySummary[]> 
     .sum({ total: 'tx.amount_minor' })
 
   return reduceSummary(rows)
+}
+
+/**
+ * The user's personal cash wallet per currency: receipts add, expenses subtract.
+ * Only ledger-less (personal) rows count — debt entries never touch the wallet.
+ */
+export async function cashBalance(userId: number): Promise<CurrencyBalance[]> {
+  const rows = await db
+    .from('transactions as tx')
+    .where('tx.user_id', userId)
+    .whereNull('tx.ledger_id')
+    .groupBy('tx.currency')
+    .select('tx.currency as currency')
+    .sum({ balanceMinor: db.raw(CASH_SIGNED_MINOR) })
+
+  return rows.map((r: any) => ({
+    currency: String(r.currency),
+    balanceMinor: Number(r.balanceMinor ?? 0),
+  }))
+}
+
+export interface DashboardOverview {
+  /** Personal cash wallet per currency. */
+  cash: CurrencyBalance[]
+  /** Debts owed TO the user (sum of positive contact balances) per currency. */
+  toReceive: CurrencyBalance[]
+  /** Debts the user OWES (sum of |negative contact balances|) per currency. */
+  toPay: CurrencyBalance[]
+}
+
+/**
+ * The three figures behind the Home dashboard circles: cash wallet, total to
+ * receive (debts owed to the user), total to pay (debts the user owes).
+ */
+export async function dashboardOverview(userId: number): Promise<DashboardOverview> {
+  const [cash, outstanding] = await Promise.all([
+    cashBalance(userId),
+    outstandingByContact(userId),
+  ])
+
+  const receiveByCurrency = new Map<string, number>()
+  const payByCurrency = new Map<string, number>()
+  for (const o of outstanding) {
+    if (o.balanceMinor > 0) {
+      receiveByCurrency.set(o.currency, (receiveByCurrency.get(o.currency) ?? 0) + o.balanceMinor)
+    } else if (o.balanceMinor < 0) {
+      payByCurrency.set(o.currency, (payByCurrency.get(o.currency) ?? 0) + Math.abs(o.balanceMinor))
+    }
+  }
+
+  const toList = (m: Map<string, number>): CurrencyBalance[] =>
+    [...m.entries()].map(([currency, balanceMinor]) => ({ currency, balanceMinor }))
+
+  return { cash, toReceive: toList(receiveByCurrency), toPay: toList(payByCurrency) }
 }
 
 function reduceSummary(rows: any[]): CurrencySummary[] {
