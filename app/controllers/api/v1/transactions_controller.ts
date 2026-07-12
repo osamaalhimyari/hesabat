@@ -6,6 +6,27 @@ import {
   updateTransactionValidator,
 } from '#validators/api/transaction'
 import { toMinor } from '#services/money'
+import { ledgerBalanceByCurrency, signOf, type TransactionType } from '#services/balance_service'
+
+/** The 4 types that necessarily involve another person (a debt ledger). */
+const DEBT_TYPES = new Set<TransactionType>([
+  'lend',
+  'borrow',
+  'repayment_received',
+  'repayment_made',
+])
+
+/**
+ * True when a repayment would exceed the open debt it settles. `net` is the
+ * ledger's debt-signed balance for the currency (positive ⇒ they owe the user).
+ *   repayment_received settles a receivable → capped at max(net, 0)
+ *   repayment_made     settles a payable    → capped at max(-net, 0)
+ */
+function repaymentExceedsDebt(type: TransactionType, amountMinor: number, net: number): boolean {
+  if (type === 'repayment_received') return amountMinor > Math.max(net, 0)
+  if (type === 'repayment_made') return amountMinor > Math.max(-net, 0)
+  return false
+}
 
 /**
  * Transactions (ledger entries). Nested under a ledger for listing/creating;
@@ -24,12 +45,19 @@ export default class TransactionsController {
     const txs = await ledger
       .related('transactions')
       .query()
+      .preload('category')
       .orderBy('occurred_at', 'asc')
       .orderBy('id', 'asc')
 
     return response.ok({
       success: true,
-      data: { transactions: txs.map((t) => t.serialize()) },
+      data: {
+        transactions: txs.map((t) => {
+          const json = t.serialize()
+          json.categoryName = t.category?.name ?? null
+          return json
+        }),
+      },
     })
   }
 
@@ -51,14 +79,39 @@ export default class TransactionsController {
     // A ledger is single-currency: entries always use the ledger's currency
     // (ignore any client-supplied currency to prevent mixed-currency ledgers).
     const currency = ledger.currency
+    const amountMinor = toMinor(payload.amount, currency)
+
+    // A repayment can't exceed the open debt it settles.
+    if (payload.type === 'repayment_received' || payload.type === 'repayment_made') {
+      const balances = await ledgerBalanceByCurrency(user.id, ledger.id)
+      const net = balances.find((b) => b.currency === currency)?.balanceMinor ?? 0
+      if (repaymentExceedsDebt(payload.type, amountMinor, net)) {
+        return response.status(422).send({ success: false, error: 'repayment_exceeds_debt' })
+      }
+    }
+
+    // A supplied category must belong to the user.
+    const categoryId = payload.categoryId ?? null
+    if (categoryId !== null) {
+      const category = await user
+        .related('categories')
+        .query()
+        .where('id', categoryId)
+        .first()
+      if (!category) {
+        return response.status(404).send({ success: false, error: 'category_not_found' })
+      }
+    }
+
     const tx = await ledger.related('transactions').create({
       userId: user.id,
       type: payload.type,
-      amountMinor: toMinor(payload.amount, currency),
+      amountMinor,
       currency,
       occurredAt,
       note: payload.note ?? null,
       attachmentUrl: payload.attachmentUrl ?? null,
+      categoryId,
     })
 
     return response.created({ success: true, data: { transaction: tx.serialize() } })
@@ -66,9 +119,10 @@ export default class TransactionsController {
 
   /**
    * Create a general entry from the app-wide "Add entry" form. Optionally links
-   * a contact (→ that contact's active ledger, auto-created) and/or counts from
-   * the cash wallet (`affectsCash`) — the two are independent, so one entry can
-   * move both books. lend/borrow require a contact.
+   * a contact (→ that contact's active ledger, auto-created). The 4 debt types
+   * (lend/borrow/repayment_received/repayment_made) require a contact;
+   * receipt/expense may link one informationally. The cash sign is derived from
+   * the type, so there is no `affectsCash` flag.
    */
   async storeGeneral({ auth, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
@@ -102,23 +156,46 @@ export default class TransactionsController {
       }
       ledgerId = ledger.id
       currency = ledger.currency
-    } else if (payload.type === 'lend' || payload.type === 'borrow') {
-      return response.status(422).send({ success: false, message: 'contact_required' })
+    } else if (DEBT_TYPES.has(payload.type)) {
+      return response.status(422).send({ success: false, error: 'contact_required' })
     }
 
-    // No contact ⇒ a personal cash entry (always counts). With a contact, the
-    // client decides via affectsCash (default off = debt only).
-    const affectsCash = payload.contactId ? (payload.affectsCash ?? false) : true
+    const amountMinor = toMinor(payload.amount, currency)
+
+    // A repayment can't exceed the open debt it settles (only reachable with a ledger).
+    if (
+      ledgerId !== null &&
+      (payload.type === 'repayment_received' || payload.type === 'repayment_made')
+    ) {
+      const balances = await ledgerBalanceByCurrency(user.id, ledgerId)
+      const net = balances.find((b) => b.currency === currency)?.balanceMinor ?? 0
+      if (repaymentExceedsDebt(payload.type, amountMinor, net)) {
+        return response.status(422).send({ success: false, error: 'repayment_exceeds_debt' })
+      }
+    }
+
+    // A supplied category must belong to the user.
+    const categoryId = payload.categoryId ?? null
+    if (categoryId !== null) {
+      const category = await user
+        .related('categories')
+        .query()
+        .where('id', categoryId)
+        .first()
+      if (!category) {
+        return response.status(404).send({ success: false, error: 'category_not_found' })
+      }
+    }
 
     const tx = await user.related('transactions').create({
       ledgerId,
       type: payload.type,
-      amountMinor: toMinor(payload.amount, currency),
+      amountMinor,
       currency,
       occurredAt,
       note: payload.note ?? null,
       attachmentUrl: payload.attachmentUrl ?? null,
-      affectsCash,
+      categoryId,
     })
 
     return response.created({ success: true, data: { transaction: tx.serialize() } })
@@ -137,6 +214,7 @@ export default class TransactionsController {
       .related('transactions')
       .query()
       .preload('ledger', (lq) => lq.preload('contact'))
+      .preload('category')
       .orderBy('occurred_at', 'desc')
       .orderBy('id', 'desc')
       .paginate(page, perPage)
@@ -145,6 +223,7 @@ export default class TransactionsController {
       const json = t.serialize()
       json.contactId = t.ledger?.contactId ?? null
       json.contactName = t.ledger?.contact?.name ?? null
+      json.categoryName = t.category?.name ?? null
       json.isPersonal = t.ledgerId == null
       return json
     })
@@ -168,6 +247,11 @@ export default class TransactionsController {
     const tx = await user.related('transactions').query().where('id', params.id).firstOrFail()
     const payload = await request.validateUsing(updateTransactionValidator)
 
+    // Capture the pre-edit state so the repayment guard can exclude this row.
+    const origType = tx.type as TransactionType
+    const origAmount = Number(tx.amountMinor)
+    const origCurrency = tx.currency
+
     if (payload.type !== undefined) tx.type = payload.type
     if (payload.currency !== undefined) tx.currency = payload.currency
     if (payload.amount !== undefined) tx.amountMinor = toMinor(payload.amount, tx.currency)
@@ -180,6 +264,41 @@ export default class TransactionsController {
     }
     if (payload.note !== undefined) tx.note = payload.note
     if (payload.attachmentUrl !== undefined) tx.attachmentUrl = payload.attachmentUrl
+
+    // categoryId: a positive id links (must belong to the user), null clears.
+    if (payload.categoryId !== undefined) {
+      if (payload.categoryId === null) {
+        tx.categoryId = null
+      } else {
+        const category = await user
+          .related('categories')
+          .query()
+          .where('id', payload.categoryId)
+          .first()
+        if (!category) {
+          return response.status(404).send({ success: false, error: 'category_not_found' })
+        }
+        tx.categoryId = payload.categoryId
+      }
+    }
+
+    // Re-run the repayment guard when type or amount changed, recomputing the
+    // ledger net EXCLUDING this row (its old value is still persisted).
+    const typeChanged = payload.type !== undefined && payload.type !== origType
+    const amountChanged = payload.amount !== undefined && Number(tx.amountMinor) !== origAmount
+    if (
+      tx.ledgerId !== null &&
+      (typeChanged || amountChanged) &&
+      (tx.type === 'repayment_received' || tx.type === 'repayment_made')
+    ) {
+      const balances = await ledgerBalanceByCurrency(user.id, tx.ledgerId)
+      let net = balances.find((b) => b.currency === tx.currency)?.balanceMinor ?? 0
+      // Remove this row's current (pre-save) contribution from the net.
+      if (origCurrency === tx.currency) net -= signOf(origType) * origAmount
+      if (repaymentExceedsDebt(tx.type, Number(tx.amountMinor), net)) {
+        return response.status(422).send({ success: false, error: 'repayment_exceeds_debt' })
+      }
+    }
 
     await tx.save()
     return response.ok({ success: true, data: { transaction: tx.serialize() } })

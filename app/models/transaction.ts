@@ -3,6 +3,7 @@ import { column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
 import Ledger from '#models/ledger'
+import Category from '#models/category'
 import { formatMinor } from '#services/money'
 
 /**
@@ -30,4 +31,7 @@ export default class Transaction extends TransactionSchema {
 
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
+
+  @belongsTo(() => Category)
+  declare category: BelongsTo<typeof Category>
 }

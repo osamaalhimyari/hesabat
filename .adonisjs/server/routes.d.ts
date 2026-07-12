@@ -36,6 +36,9 @@ export type ScannedRoutes = {
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'categories.index': { paramsTuple?: []; params?: {} }
+    'categories.store': { paramsTuple?: []; params?: {} }
+    'categories.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'summary.contact': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'summary.global': { paramsTuple?: []; params?: {} }
   }
@@ -52,6 +55,7 @@ export type ScannedRoutes = {
     'transactions.index': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
     'transactions.feed': { paramsTuple?: []; params?: {} }
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'categories.index': { paramsTuple?: []; params?: {} }
     'summary.contact': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'summary.global': { paramsTuple?: []; params?: {} }
   }
@@ -68,6 +72,7 @@ export type ScannedRoutes = {
     'transactions.index': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
     'transactions.feed': { paramsTuple?: []; params?: {} }
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'categories.index': { paramsTuple?: []; params?: {} }
     'summary.contact': { paramsTuple: [ParamValue]; params: {'contactId': ParamValue} }
     'summary.global': { paramsTuple?: []; params?: {} }
   }
@@ -86,6 +91,7 @@ export type ScannedRoutes = {
     'ledgers.reopen': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.store': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
     'transactions.store_general': { paramsTuple?: []; params?: {} }
+    'categories.store': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'auth.update_settings': { paramsTuple?: []; params?: {} }
@@ -96,6 +102,7 @@ export type ScannedRoutes = {
   DELETE: {
     'contacts.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'categories.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

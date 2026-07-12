@@ -18,6 +18,7 @@ const ContactsController = () => import('#controllers/api/v1/contacts_controller
 const LedgersController = () => import('#controllers/api/v1/ledgers_controller')
 const TransactionsController = () => import('#controllers/api/v1/transactions_controller')
 const SummaryController = () => import('#controllers/api/v1/summary_controller')
+const CategoriesController = () => import('#controllers/api/v1/categories_controller')
 
 router.on('/').render('pages/home').as('home')
 
@@ -78,6 +79,10 @@ router
         router.get('/transactions/:id', [TransactionsController, 'show'])
         router.patch('/transactions/:id', [TransactionsController, 'update'])
         router.delete('/transactions/:id', [TransactionsController, 'destroy'])
+
+        router.get('/categories', [CategoriesController, 'index'])
+        router.post('/categories', [CategoriesController, 'store'])
+        router.delete('/categories/:id', [CategoriesController, 'destroy'])
 
         router.get('/contacts/:contactId/summary', [SummaryController, 'contact'])
         router.get('/summary', [SummaryController, 'global'])

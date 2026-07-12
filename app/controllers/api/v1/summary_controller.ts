@@ -40,6 +40,7 @@ export default class SummaryController {
           cash: overview.cash.map(shapeBalance),
           toPay: overview.toPay.map(shapeBalance),
           toReceive: overview.toReceive.map(shapeBalance),
+          netWorth: overview.netWorth.map(shapeBalance),
         },
       },
     })

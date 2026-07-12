@@ -8,6 +8,7 @@ import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Contact from '#models/contact'
 import Ledger from '#models/ledger'
 import Transaction from '#models/transaction'
+import Category from '#models/category'
 
 /**
  * User model represents a user in the application.
@@ -27,6 +28,9 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
 
   @hasMany(() => Transaction)
   declare transactions: HasMany<typeof Transaction>
+
+  @hasMany(() => Category)
+  declare categories: HasMany<typeof Category>
 
   /**
    * Access tokens provider for the mobile `api` guard. Only a hash of each

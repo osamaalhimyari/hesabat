@@ -7,6 +7,7 @@ export const controllers = {
   api: {
     v1: {
       Auth: () => import('#controllers/api/v1/auth_controller'),
+      Categories: () => import('#controllers/api/v1/categories_controller'),
       Contacts: () => import('#controllers/api/v1/contacts_controller'),
       Ledgers: () => import('#controllers/api/v1/ledgers_controller'),
       Summary: () => import('#controllers/api/v1/summary_controller'),

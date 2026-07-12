@@ -32,6 +32,21 @@ export class AuthAccessTokenSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class CategorySchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'name', 'updatedAt', 'userId'] as const
+  $columns = CategorySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: number
+}
+
 export class ContactSchema extends BaseModel {
   static $columns = ['createdAt', 'deviceContactId', 'id', 'name', 'phone', 'photoUrl', 'source', 'updatedAt', 'userId'] as const
   $columns = ContactSchema.$columns
@@ -83,14 +98,14 @@ export class LedgerSchema extends BaseModel {
 }
 
 export class TransactionSchema extends BaseModel {
-  static $columns = ['affectsCash', 'amountMinor', 'attachmentUrl', 'createdAt', 'currency', 'id', 'ledgerId', 'note', 'occurredAt', 'type', 'updatedAt', 'userId'] as const
+  static $columns = ['amountMinor', 'attachmentUrl', 'categoryId', 'createdAt', 'currency', 'id', 'ledgerId', 'note', 'occurredAt', 'type', 'updatedAt', 'userId'] as const
   $columns = TransactionSchema.$columns
-  @column()
-  declare affectsCash: boolean
   @column()
   declare amountMinor: bigint | number
   @column()
   declare attachmentUrl: string | null
+  @column()
+  declare categoryId: number | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
