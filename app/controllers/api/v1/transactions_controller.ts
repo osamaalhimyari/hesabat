@@ -48,7 +48,9 @@ export default class TransactionsController {
       return response.status(422).send({ success: false, message: 'invalid_date' })
     }
 
-    const currency = payload.currency || ledger.currency
+    // A ledger is single-currency: entries always use the ledger's currency
+    // (ignore any client-supplied currency to prevent mixed-currency ledgers).
+    const currency = ledger.currency
     const tx = await ledger.related('transactions').create({
       userId: user.id,
       type: payload.type,
@@ -89,15 +91,17 @@ export default class TransactionsController {
       // The contact's active ledger, auto-created if none (mirrors LedgersController.current).
       let ledger = await contact.related('ledgers').query().where('status', 'active').first()
       if (!ledger) {
+        // A brand-new ledger adopts the chosen currency; an existing one keeps
+        // its own — a ledger is single-currency (see `store`).
         ledger = await contact.related('ledgers').create({
           userId: user.id,
-          currency: user.defaultCurrency || 'USD',
+          currency,
           status: 'active',
           openedAt: DateTime.now(),
         })
       }
       ledgerId = ledger.id
-      if (!payload.currency) currency = ledger.currency
+      currency = ledger.currency
     } else if (payload.type === 'lend' || payload.type === 'borrow') {
       return response.status(422).send({ success: false, message: 'contact_required' })
     }
