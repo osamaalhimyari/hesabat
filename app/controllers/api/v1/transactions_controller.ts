@@ -64,10 +64,11 @@ export default class TransactionsController {
   /** Add an entry to a ledger. */
   async store({ auth, params, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
-    const ledger = await user
+    let ledger = await user
       .related('ledgers')
       .query()
       .where('id', params.ledgerId)
+      .preload('contact')
       .firstOrFail()
     const payload = await request.validateUsing(createTransactionValidator)
 
@@ -76,9 +77,31 @@ export default class TransactionsController {
       return response.status(422).send({ success: false, message: 'invalid_date' })
     }
 
-    // A ledger is single-currency: entries always use the ledger's currency
-    // (ignore any client-supplied currency to prevent mixed-currency ledgers).
-    const currency = ledger.currency
+    // If a different currency is supplied, find or create the ledger for that currency
+    let currency = (payload.currency || ledger.currency).toUpperCase()
+    if (currency !== ledger.currency) {
+      // Switch to the appropriate ledger for this currency
+      const alt = await ledger.contact
+        .related('ledgers')
+        .query()
+        .where('status', 'active')
+        .where('currency', currency)
+        .first()
+      if (alt) {
+        ledger = alt
+      } else {
+        // Auto-create a new ledger for this contact in the new currency
+        ledger = await ledger.contact.related('ledgers').create({
+          userId: user.id,
+          currency,
+          status: 'active',
+          openedAt: DateTime.now(),
+        })
+      }
+    } else {
+      currency = ledger.currency
+    }
+
     const amountMinor = toMinor(payload.amount, currency)
 
     // A repayment can't exceed the open debt it settles.
