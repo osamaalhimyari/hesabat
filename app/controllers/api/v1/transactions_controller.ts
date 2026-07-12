@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import {
-  createPersonalTransactionValidator,
+  createGeneralTransactionValidator,
   createTransactionValidator,
   updateTransactionValidator,
 } from '#validators/api/transaction'
@@ -63,27 +63,58 @@ export default class TransactionsController {
   }
 
   /**
-   * Create a PERSONAL cash entry (no ledger/contact). A receipt adds to the
-   * user's cash wallet, an expense subtracts from it. See `balance_service`.
+   * Create a general entry from the app-wide "Add entry" form. Optionally links
+   * a contact (→ that contact's active ledger, auto-created) and/or counts from
+   * the cash wallet (`affectsCash`) — the two are independent, so one entry can
+   * move both books. lend/borrow require a contact.
    */
-  async storePersonal({ auth, request, response }: HttpContext) {
+  async storeGeneral({ auth, request, response }: HttpContext) {
     const user = auth.getUserOrFail()
-    const payload = await request.validateUsing(createPersonalTransactionValidator)
+    const payload = await request.validateUsing(createGeneralTransactionValidator)
 
     const occurredAt = DateTime.fromISO(payload.occurredAt)
     if (!occurredAt.isValid) {
       return response.status(422).send({ success: false, message: 'invalid_date' })
     }
 
-    const currency = (payload.currency || user.defaultCurrency || 'USD').toUpperCase()
+    let ledgerId: number | null = null
+    let currency = (payload.currency || user.defaultCurrency || 'USD').toUpperCase()
+
+    if (payload.contactId) {
+      const contact = await user
+        .related('contacts')
+        .query()
+        .where('id', payload.contactId)
+        .firstOrFail()
+      // The contact's active ledger, auto-created if none (mirrors LedgersController.current).
+      let ledger = await contact.related('ledgers').query().where('status', 'active').first()
+      if (!ledger) {
+        ledger = await contact.related('ledgers').create({
+          userId: user.id,
+          currency: user.defaultCurrency || 'USD',
+          status: 'active',
+          openedAt: DateTime.now(),
+        })
+      }
+      ledgerId = ledger.id
+      if (!payload.currency) currency = ledger.currency
+    } else if (payload.type === 'lend' || payload.type === 'borrow') {
+      return response.status(422).send({ success: false, message: 'contact_required' })
+    }
+
+    // No contact ⇒ a personal cash entry (always counts). With a contact, the
+    // client decides via affectsCash (default off = debt only).
+    const affectsCash = payload.contactId ? (payload.affectsCash ?? false) : true
+
     const tx = await user.related('transactions').create({
-      ledgerId: null,
+      ledgerId,
       type: payload.type,
       amountMinor: toMinor(payload.amount, currency),
       currency,
       occurredAt,
       note: payload.note ?? null,
       attachmentUrl: payload.attachmentUrl ?? null,
+      affectsCash,
     })
 
     return response.created({ success: true, data: { transaction: tx.serialize() } })

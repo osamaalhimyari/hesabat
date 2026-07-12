@@ -21,12 +21,14 @@ const SIGNED_MINOR = `tx.amount_minor * (CASE tx.type ` +
   `WHEN 'lend' THEN 1 WHEN 'expense' THEN 1 ELSE -1 END)`
 
 /**
- * SQL expression for a personal (cash-wallet) row. NOTE the sign is the OPPOSITE
- * of `SIGNED_MINOR`: a receipt adds to your money (+), an expense reduces it (−).
- * lend/borrow never appear here (they always belong to a ledger), hence ELSE 0.
+ * SQL expression for a cash-wallet row, from the wallet's point of view: money
+ * IN is +, money OUT is −. NOTE this differs from `SIGNED_MINOR` (the debt sign)
+ * — e.g. `lend` is +1 for debt (they owe you) but −1 for cash (money left you).
+ *   receipt +  (money received)      borrow  +  (you took their money)
+ *   expense −  (money paid out)      lend    −  (you handed money over)
  */
 const CASH_SIGNED_MINOR = `tx.amount_minor * (CASE tx.type ` +
-  `WHEN 'receipt' THEN 1 WHEN 'expense' THEN -1 ELSE 0 END)`
+  `WHEN 'receipt' THEN 1 WHEN 'borrow' THEN 1 WHEN 'expense' THEN -1 WHEN 'lend' THEN -1 ELSE 0 END)`
 
 export interface CurrencyBalance {
   currency: string
@@ -128,14 +130,14 @@ export async function globalSummary(userId: number): Promise<CurrencySummary[]> 
 }
 
 /**
- * The user's personal cash wallet per currency: receipts add, expenses subtract.
- * Only ledger-less (personal) rows count — debt entries never touch the wallet.
+ * The user's personal cash wallet per currency. Any row flagged `affects_cash`
+ * counts (money in − money out), whether or not it's linked to a contact.
  */
 export async function cashBalance(userId: number): Promise<CurrencyBalance[]> {
   const rows = await db
     .from('transactions as tx')
     .where('tx.user_id', userId)
-    .whereNull('tx.ledger_id')
+    .where('tx.affects_cash', true)
     .groupBy('tx.currency')
     .select('tx.currency as currency')
     .sum({ balanceMinor: db.raw(CASH_SIGNED_MINOR) })

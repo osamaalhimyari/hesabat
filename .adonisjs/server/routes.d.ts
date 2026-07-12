@@ -32,7 +32,7 @@ export type ScannedRoutes = {
     'transactions.index': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
     'transactions.store': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
     'transactions.feed': { paramsTuple?: []; params?: {} }
-    'transactions.store_personal': { paramsTuple?: []; params?: {} }
+    'transactions.store_general': { paramsTuple?: []; params?: {} }
     'transactions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -85,7 +85,7 @@ export type ScannedRoutes = {
     'ledgers.archive': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'ledgers.reopen': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.store': { paramsTuple: [ParamValue]; params: {'ledgerId': ParamValue} }
-    'transactions.store_personal': { paramsTuple?: []; params?: {} }
+    'transactions.store_general': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'auth.update_settings': { paramsTuple?: []; params?: {} }

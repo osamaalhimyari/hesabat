@@ -16,16 +16,20 @@ export const createTransactionValidator = vine.create({
 })
 
 /**
- * Personal (contact-less) cash entry. Only receipt/expense make sense without a
- * person — lend/borrow are debts and require a ledger.
+ * A general entry (the app-wide "Add entry" form). Any type is allowed; a
+ * `contactId` links it to a person's debt ledger; `affectsCash` decides whether
+ * it also moves the cash wallet. lend/borrow require a contact (enforced in the
+ * controller). Currency defaults to the user's default currency.
  */
-export const createPersonalTransactionValidator = vine.create({
-  type: vine.enum(['receipt', 'expense']),
+export const createGeneralTransactionValidator = vine.create({
+  type: vine.enum(['lend', 'borrow', 'receipt', 'expense']),
   amount: amountRule(),
   currency: vine.string().trim().fixedLength(3).optional(),
   occurredAt: occurredAtRule(),
   note: vine.string().trim().maxLength(1000).nullable().optional(),
   attachmentUrl: vine.string().trim().maxLength(1024).nullable().optional(),
+  contactId: vine.number().positive().optional(),
+  affectsCash: vine.boolean().optional(),
 })
 
 export const updateTransactionValidator = vine.create({

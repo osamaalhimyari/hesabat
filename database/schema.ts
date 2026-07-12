@@ -83,8 +83,10 @@ export class LedgerSchema extends BaseModel {
 }
 
 export class TransactionSchema extends BaseModel {
-  static $columns = ['amountMinor', 'attachmentUrl', 'createdAt', 'currency', 'id', 'ledgerId', 'note', 'occurredAt', 'type', 'updatedAt', 'userId'] as const
+  static $columns = ['affectsCash', 'amountMinor', 'attachmentUrl', 'createdAt', 'currency', 'id', 'ledgerId', 'note', 'occurredAt', 'type', 'updatedAt', 'userId'] as const
   $columns = TransactionSchema.$columns
+  @column()
+  declare affectsCash: boolean
   @column()
   declare amountMinor: bigint | number
   @column()
