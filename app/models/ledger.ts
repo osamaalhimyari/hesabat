@@ -7,18 +7,18 @@ import Transaction from '#models/transaction'
 
 /**
  * A "book" grouping transactions for one contact. A contact has at most one
- * `active` ledger (the current one, enforced by a unique index) plus any number
- * of `archived` ledgers.
+ * `active` ledger PER CURRENCY (enforced by a unique index) plus any number of
+ * `archived` ledgers — so a contact can owe/be owed in several currencies at once.
  */
 export default class Ledger extends LedgerSchema {
   /**
-   * DB-only helper backing the "one active ledger per contact" unique index on
-   * MySQL/MariaDB (a STORED generated column; absent on SQLite/Postgres, which
-   * use a partial index instead). It is never written by the app and must not
-   * be exposed to the API, so it is hidden from serialization.
+   * DB-only helper backing the "one active ledger per (contact, currency)"
+   * unique index on MySQL/MariaDB (a STORED generated column, `contactId-currency`
+   * while active else NULL; absent on SQLite/Postgres, which use a partial index).
+   * Never written by the app and hidden from the API.
    */
   @column({ serializeAs: null })
-  declare activeContactId: number | null
+  declare activeContactCurrency: string | null
 
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>

@@ -6,7 +6,13 @@ import {
   updateTransactionValidator,
 } from '#validators/api/transaction'
 import { toMinor } from '#services/money'
-import { ledgerBalanceByCurrency, signOf, type TransactionType } from '#services/balance_service'
+import {
+  holdSignOf,
+  ledgerBalanceByCurrency,
+  ledgerHeldByCurrency,
+  signOf,
+  type TransactionType,
+} from '#services/balance_service'
 
 /** The 4 types that necessarily involve another person (a debt ledger). */
 const DEBT_TYPES = new Set<TransactionType>([
@@ -15,6 +21,12 @@ const DEBT_TYPES = new Set<TransactionType>([
   'repayment_received',
   'repayment_made',
 ])
+
+/** The 3 custody types (money the user keeps with a contact). */
+const HOLD_TYPES = new Set<TransactionType>(['hold_deposit', 'hold_withdraw', 'hold_spend'])
+
+/** Every type that must be linked to a contact (debt + custody). */
+const CONTACT_REQUIRED_TYPES = new Set<TransactionType>([...DEBT_TYPES, ...HOLD_TYPES])
 
 /**
  * True when a repayment would exceed the open debt it settles. `net` is the
@@ -25,6 +37,15 @@ const DEBT_TYPES = new Set<TransactionType>([
 function repaymentExceedsDebt(type: TransactionType, amountMinor: number, net: number): boolean {
   if (type === 'repayment_received') return amountMinor > Math.max(net, 0)
   if (type === 'repayment_made') return amountMinor > Math.max(-net, 0)
+  return false
+}
+
+/**
+ * True when a withdraw/spend would exceed the money the contact currently
+ * holds for the user (`held` = the ledger's hold-signed balance).
+ */
+function holdExceedsHeld(type: TransactionType, amountMinor: number, held: number): boolean {
+  if (type === 'hold_withdraw' || type === 'hold_spend') return amountMinor > Math.max(held, 0)
   return false
 }
 
@@ -113,6 +134,15 @@ export default class TransactionsController {
       }
     }
 
+    // A withdraw/spend can't exceed what the contact currently holds.
+    if (payload.type === 'hold_withdraw' || payload.type === 'hold_spend') {
+      const heldBalances = await ledgerHeldByCurrency(user.id, ledger.id)
+      const held = heldBalances.find((b) => b.currency === currency)?.balanceMinor ?? 0
+      if (holdExceedsHeld(payload.type, amountMinor, held)) {
+        return response.status(422).send({ success: false, error: 'insufficient_held' })
+      }
+    }
+
     // A supplied category must belong to the user.
     const categoryId = payload.categoryId ?? null
     if (categoryId !== null) {
@@ -184,7 +214,7 @@ export default class TransactionsController {
       }
       ledgerId = ledger.id
       // Do NOT reassign currency — the ledger already matches it.
-    } else if (DEBT_TYPES.has(payload.type)) {
+    } else if (CONTACT_REQUIRED_TYPES.has(payload.type)) {
       return response.status(422).send({ success: false, error: 'contact_required' })
     }
 
@@ -199,6 +229,15 @@ export default class TransactionsController {
       const net = balances.find((b) => b.currency === currency)?.balanceMinor ?? 0
       if (repaymentExceedsDebt(payload.type, amountMinor, net)) {
         return response.status(422).send({ success: false, error: 'repayment_exceeds_debt' })
+      }
+    }
+
+    // A withdraw/spend can't exceed what the contact currently holds.
+    if (ledgerId !== null && (payload.type === 'hold_withdraw' || payload.type === 'hold_spend')) {
+      const heldBalances = await ledgerHeldByCurrency(user.id, ledgerId)
+      const held = heldBalances.find((b) => b.currency === currency)?.balanceMinor ?? 0
+      if (holdExceedsHeld(payload.type, amountMinor, held)) {
+        return response.status(422).send({ success: false, error: 'insufficient_held' })
       }
     }
 
@@ -310,6 +349,17 @@ export default class TransactionsController {
       }
     }
 
+    // A personal (ledgerless) row can never become a contact-required type —
+    // e.g. a ledgerless hold_deposit would subtract cash yet be invisible to
+    // heldByContact (which joins ledgers), silently vanishing from net worth.
+    if (
+      tx.ledgerId === null &&
+      payload.type !== undefined &&
+      CONTACT_REQUIRED_TYPES.has(payload.type)
+    ) {
+      return response.status(422).send({ success: false, error: 'contact_required' })
+    }
+
     // Re-run the repayment guard when type or amount changed, recomputing the
     // ledger net EXCLUDING this row (its old value is still persisted).
     const typeChanged = payload.type !== undefined && payload.type !== origType
@@ -325,6 +375,21 @@ export default class TransactionsController {
       if (origCurrency === tx.currency) net -= signOf(origType) * origAmount
       if (repaymentExceedsDebt(tx.type, Number(tx.amountMinor), net)) {
         return response.status(422).send({ success: false, error: 'repayment_exceeds_debt' })
+      }
+    }
+
+    // Same re-check for the held guard: a withdraw/spend edit can't exceed the
+    // held balance computed WITHOUT this row's old contribution.
+    if (
+      tx.ledgerId !== null &&
+      (typeChanged || amountChanged) &&
+      (tx.type === 'hold_withdraw' || tx.type === 'hold_spend')
+    ) {
+      const heldBalances = await ledgerHeldByCurrency(user.id, tx.ledgerId)
+      let held = heldBalances.find((b) => b.currency === tx.currency)?.balanceMinor ?? 0
+      if (origCurrency === tx.currency) held -= holdSignOf(origType) * origAmount
+      if (holdExceedsHeld(tx.type, Number(tx.amountMinor), held)) {
+        return response.status(422).send({ success: false, error: 'insufficient_held' })
       }
     }
 

@@ -40,6 +40,7 @@ export default class SummaryController {
           cash: overview.cash.map(shapeBalance),
           toPay: overview.toPay.map(shapeBalance),
           toReceive: overview.toReceive.map(shapeBalance),
+          held: overview.held.map(shapeBalance),
           netWorth: overview.netWorth.map(shapeBalance),
         },
       },
@@ -68,6 +69,12 @@ function shape(s: CurrencySummary) {
       minor: s.netMinor,
       display: formatMinor(s.netMinor, s.currency),
       direction,
+    },
+    // "My money with him" (custody/أمانة). Like the repayment totals, the three
+    // hold per-type totals are deliberately not on the wire — only the net.
+    held: {
+      minor: s.heldMinor,
+      display: formatMinor(s.heldMinor, s.currency),
     },
   }
 }

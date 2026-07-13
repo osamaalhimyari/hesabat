@@ -4,7 +4,7 @@ import {
   updateContactValidator,
   importContactsValidator,
 } from '#validators/api/contact'
-import { outstandingByContact } from '#services/balance_service'
+import { heldByContact, outstandingByContact } from '#services/balance_service'
 
 /**
  * Contacts CRUD + device-contact import. Every query is scoped to the
@@ -20,19 +20,29 @@ export default class ContactsController {
     const onlyOutstanding =
       request.input('onlyOutstanding') === 'true' || request.input('onlyOutstanding') === true
 
-    // Outstanding per contact (active ledgers only), grouped by contact id.
-    const outstanding = await outstandingByContact(user.id)
+    // Outstanding (debt) and held (custody) per contact, active ledgers only.
+    const [outstanding, held] = await Promise.all([
+      outstandingByContact(user.id),
+      heldByContact(user.id),
+    ])
     const byContact = new Map<number, { currency: string; balanceMinor: number }[]>()
     for (const o of outstanding) {
       const arr = byContact.get(o.contactId) ?? []
       arr.push({ currency: o.currency, balanceMinor: o.balanceMinor })
       byContact.set(o.contactId, arr)
     }
+    const heldMap = new Map<number, { currency: string; balanceMinor: number }[]>()
+    for (const h of held) {
+      const arr = heldMap.get(h.contactId) ?? []
+      arr.push({ currency: h.currency, balanceMinor: h.balanceMinor })
+      heldMap.set(h.contactId, arr)
+    }
 
     const query = user.related('contacts').query()
     if (search) query.where('name', 'like', `%${search}%`)
     if (onlyOutstanding) {
-      const ids = [...byContact.keys()]
+      // "Outstanding" = any open balance with the contact: debt OR held money.
+      const ids = [...new Set([...byContact.keys(), ...heldMap.keys()])]
       query.whereIn('id', ids.length ? ids : [-1])
     }
     query.orderBy('name', 'asc')
@@ -41,6 +51,7 @@ export default class ContactsController {
     const contacts = paginator.all().map((c) => {
       const json = c.serialize()
       json.outstanding = byContact.get(c.id) ?? []
+      json.held = heldMap.get(c.id) ?? []
       return json
     })
 
@@ -92,15 +103,21 @@ export default class ContactsController {
     return response.ok({ success: true, data: { imported, skipped } })
   }
 
-  /** A single contact with its outstanding balance. */
+  /** A single contact with its outstanding (debt) and held (custody) balances. */
   async show({ auth, params, response }: HttpContext) {
     const user = auth.getUserOrFail()
     const contact = await user.related('contacts').query().where('id', params.id).firstOrFail()
-    const outstanding = (await outstandingByContact(user.id))
+    const [outstandingAll, heldAll] = await Promise.all([
+      outstandingByContact(user.id),
+      heldByContact(user.id),
+    ])
+    const json = contact.serialize()
+    json.outstanding = outstandingAll
       .filter((o) => o.contactId === contact.id)
       .map((o) => ({ currency: o.currency, balanceMinor: o.balanceMinor }))
-    const json = contact.serialize()
-    json.outstanding = outstanding
+    json.held = heldAll
+      .filter((h) => h.contactId === contact.id)
+      .map((h) => ({ currency: h.currency, balanceMinor: h.balanceMinor }))
     return response.ok({ success: true, data: { contact: json } })
   }
 

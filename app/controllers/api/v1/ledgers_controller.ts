@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { createLedgerValidator, updateLedgerValidator } from '#validators/api/ledger'
-import { ledgerBalanceByCurrency } from '#services/balance_service'
+import { ledgerBalanceByCurrency, ledgerHeldByCurrency } from '#services/balance_service'
 
 /**
  * Ledgers for a contact: the two tabs (current/archived), plus lifecycle
@@ -145,10 +145,19 @@ export default class LedgersController {
     return response.ok({ success: true, data: { ledger: ledger.serialize() } })
   }
 
-  /** Close & archive the ledger. */
+  /**
+   * Close & archive the ledger. Blocked while the contact still HOLDS money for
+   * the user (held ≠ 0) — unlike a debt (which archiving forgives by decision),
+   * held money is physical cash sitting with someone; it must be withdrawn or
+   * spent first, else it would silently vanish from the dashboard/net worth.
+   */
   async archive({ auth, params, response }: HttpContext) {
     const user = auth.getUserOrFail()
     const ledger = await user.related('ledgers').query().where('id', params.id).firstOrFail()
+    const held = await ledgerHeldByCurrency(user.id, ledger.id)
+    if (held.some((h) => h.balanceMinor !== 0)) {
+      return response.status(409).send({ success: false, error: 'held_outstanding' })
+    }
     ledger.status = 'archived'
     ledger.closedAt = DateTime.now()
     await ledger.save()
