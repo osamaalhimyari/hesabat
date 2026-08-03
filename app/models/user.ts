@@ -35,9 +35,12 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
   /**
    * Access tokens provider for the mobile `api` guard. Only a hash of each
    * token is persisted; the plaintext is returned once at issue time.
+   *
+   * No `expiresIn` — mobile tokens never expire, so a single login lasts until
+   * the user signs out (logout revokes the token server-side). With an expiry
+   * the client would be bounced back to the login screen every 30 days.
    */
   static accessTokens = DbAccessTokensProvider.forModel(User, {
-    expiresIn: '30 days',
     prefix: 'hst_',
     table: 'auth_access_tokens',
     type: 'auth_token',
