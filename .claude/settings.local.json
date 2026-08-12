@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node ace *)"
+      "Bash(node ace *)",
+      "Bash(ls -d ~/.codex ~/.codex/config.toml ~/.gemini ~/.gemini/settings.json \"c:/xampp/htdocs/projects/mine/hisabat/hesabat/.codex\" \"c:/xampp/htdocs/projects/mine/hisabat/hesabat/.gemini\" \"c:/xampp/htdocs/projects/mine/hisabat/hesabat/GEMINI.md\" 2>/dev/null; echo \"done\")",
+      "Read(//c/Users/osama/**)"
     ]
   }
 }

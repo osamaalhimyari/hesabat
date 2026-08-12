@@ -14,12 +14,18 @@ import {
   type TransactionType,
 } from '#services/balance_service'
 
-/** The 4 types that necessarily involve another person (a debt ledger). */
+/**
+ * The 6 types that necessarily involve another person (a debt ledger). The two
+ * `due_*` types belong here too: they record a debt with that person, they just
+ * never move the cash wallet.
+ */
 const DEBT_TYPES = new Set<TransactionType>([
   'lend',
   'borrow',
   'repayment_received',
   'repayment_made',
+  'due_to_me',
+  'due_from_me',
 ])
 
 /** The 3 custody types (money the user keeps with a contact). */

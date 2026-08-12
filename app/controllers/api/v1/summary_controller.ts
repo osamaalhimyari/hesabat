@@ -64,6 +64,14 @@ function shape(s: CurrencySummary) {
       borrow: { minor: s.totals.borrow, display: formatMinor(s.totals.borrow, s.currency) },
       receipt: { minor: s.totals.receipt, display: formatMinor(s.totals.receipt, s.currency) },
       expense: { minor: s.totals.expense, display: formatMinor(s.totals.expense, s.currency) },
+      // Unlike the repayment totals (which settle amounts already charted), a
+      // due is a primary charge — without it on the wire a contact whose only
+      // entry is a due would show a non-zero net over an empty chart.
+      dueToMe: { minor: s.totals.dueToMe, display: formatMinor(s.totals.dueToMe, s.currency) },
+      dueFromMe: {
+        minor: s.totals.dueFromMe,
+        display: formatMinor(s.totals.dueFromMe, s.currency),
+      },
     },
     net: {
       minor: s.netMinor,

@@ -6,7 +6,7 @@ const amountRule = () => vine.string().trim().regex(/^\d{1,12}(\.\d{1,4})?$/)
 /** ISO-8601 date (YYYY-MM-DD or full timestamp), parsed with Luxon in the controller. */
 const occurredAtRule = () => vine.string().trim().maxLength(40)
 
-/** The 9 authoritative transaction types (debt, cash, and custody/held). */
+/** The 11 authoritative transaction types (debt, cash, custody/held, and dues). */
 const typeValues = [
   'lend',
   'borrow',
@@ -17,6 +17,8 @@ const typeValues = [
   'hold_deposit',
   'hold_withdraw',
   'hold_spend',
+  'due_to_me',
+  'due_from_me',
 ] as const
 
 export const createTransactionValidator = vine.create({

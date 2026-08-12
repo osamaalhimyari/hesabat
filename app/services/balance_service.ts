@@ -10,19 +10,23 @@ export type TransactionType =
   | 'hold_deposit'
   | 'hold_withdraw'
   | 'hold_spend'
+  | 'due_to_me'
+  | 'due_from_me'
 
 /**
  * The one place the DEBT sign convention lives. Per person, +1 increases what
  * the CONTACT owes the user; -1 increases what the USER owes; 0 = no debt effect.
  *   lend               -> +  (I gave them money; they owe me)
  *   repayment_made     -> +  (I paid down what I owe; reduces my debt to them)
+ *   due_to_me          -> +  (they owe me for something; no money changed hands)
  *   borrow             -> -  (I took their money; I owe them)
  *   repayment_received -> -  (they paid me back; reduces what they owe me)
+ *   due_from_me        -> -  (I owe them for something; no money changed hands)
  *   receipt / expense  -> 0  (pure cash movement; no debt effect)
  */
 export function signOf(type: TransactionType): number {
-  if (type === 'lend' || type === 'repayment_made') return 1
-  if (type === 'borrow' || type === 'repayment_received') return -1
+  if (type === 'lend' || type === 'repayment_made' || type === 'due_to_me') return 1
+  if (type === 'borrow' || type === 'repayment_received' || type === 'due_from_me') return -1
   return 0
 }
 
@@ -43,8 +47,8 @@ export function holdSignOf(type: TransactionType): number {
 /** SQL expression for the signed DEBT minor amount of a `transactions` row aliased `tx`. */
 const SIGNED_MINOR =
   `tx.amount_minor * (CASE ` +
-  `WHEN tx.type IN ('lend','repayment_made') THEN 1 ` +
-  `WHEN tx.type IN ('borrow','repayment_received') THEN -1 ` +
+  `WHEN tx.type IN ('lend','repayment_made','due_to_me') THEN 1 ` +
+  `WHEN tx.type IN ('borrow','repayment_received','due_from_me') THEN -1 ` +
   `ELSE 0 END)`
 
 /**
@@ -55,6 +59,11 @@ const SIGNED_MINOR =
  *   expense/lend/repayment_made/hold_deposit        −  (money went out)
  *   hold_spend                                      0  (held money consumed;
  *                                                       the wallet never sees it)
+ *   due_to_me/due_from_me                           0  (a debt was recorded but
+ *                                                       no money changed hands —
+ *                                                       the whole point of the
+ *                                                       due types; they must NOT
+ *                                                       appear in either list)
  */
 const CASH_SIGNED_MINOR =
   `tx.amount_minor * (CASE ` +
@@ -182,6 +191,8 @@ export interface CurrencySummary {
     holdDeposit: number
     holdWithdraw: number
     holdSpend: number
+    dueToMe: number
+    dueFromMe: number
   }
   netMinor: number
   /** "My money with him" for this currency (Σ amount × hold sign). */
@@ -331,6 +342,8 @@ function reduceSummary(rows: any[]): CurrencySummary[] {
     hold_deposit: 'holdDeposit',
     hold_withdraw: 'holdWithdraw',
     hold_spend: 'holdSpend',
+    due_to_me: 'dueToMe',
+    due_from_me: 'dueFromMe',
   }
   for (const r of rows) {
     const currency = String(r.currency)
@@ -349,6 +362,8 @@ function reduceSummary(rows: any[]): CurrencySummary[] {
           holdDeposit: 0,
           holdWithdraw: 0,
           holdSpend: 0,
+          dueToMe: 0,
+          dueFromMe: 0,
         },
         netMinor: 0,
         heldMinor: 0,
